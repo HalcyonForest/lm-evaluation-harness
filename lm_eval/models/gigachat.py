@@ -7,11 +7,11 @@ from lm_eval.base import BaseLM
 
 
 def anthropic_completion(client, model, prompt, max_tokens_to_sample, temperature, stop, task=None, num_generation=1):
-    """Query Anthropic API for completion.
+    """Query GigaChat API for completion.
 
     Retry with back-off until they respond
     """
-    import anthropic
+    import gigachat
 
     backoff_time = 3
     while True:
