@@ -54,26 +54,26 @@ please install gigachat via `pip install 'gigachat'`",
         )
     messages=[]
     if system:
-        messages.append([
+        messages.append(
             gigachat.models.Messages(
                 role=gigachat.models.MessagesRole.SYSTEM,
                 content=system,
             )  
-        ])
+        )
         
-    messages.append([
+    messages.append(
             gigachat.models.Messages(
                 role=gigachat.models.MessagesRole.USER,
                 content=prompt,
-            )]
             )
+        )
 
     def completion():
         
         payload = gigachat.models.Chat(
-            message=messages,
+            messages=messages,
             model=model,
-            max_tokens_to_sample=max_tokens,
+            max_tokens=max_tokens,
             temperature=temperature,
             **kwargs,
         )
@@ -84,7 +84,7 @@ please install gigachat via `pip install 'gigachat'`",
 
     return completion()
 
-@register_model("gigachat")
+@register_model("gigachat_llms")
 class GigaChatLM(LM):
 
     def __init__(
@@ -180,6 +180,8 @@ please install gigachat via `pip install 'gigachat'`",
                 # generation_kwargs
                 max_gen_toks = request_args.get("max_gen_toks", self.max_length)
                 temperature = request_args.get("temperature", self.temperature)
+                if temperature==0:
+                    temperature=1e-10
                 system = request_args.get("instruction", None)
                 response = gigachat_completion(
                     client=self.client,
