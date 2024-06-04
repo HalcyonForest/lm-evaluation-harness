@@ -2,7 +2,7 @@ import os
 from typing import Any, List, Tuple
 
 from tqdm import tqdm
-
+import re
 from lm_eval import utils
 from lm_eval.api.model import LM
 from lm_eval.api.registry import register_model
@@ -19,6 +19,7 @@ def gigachat_completion(
     max_tokens: int,
     temperature: float,
     system: str,
+    stopwords: List[str],
     **kwargs,
 ) -> str:
     """Wrapper function around the Anthropic completion API client with exponential back-off
@@ -75,16 +76,28 @@ please install gigachat via `pip install 'gigachat'`",
             model=model,
             max_tokens=max_tokens,
             temperature=temperature,
+            stopwords=stopwords,
             **kwargs,
         )
         response = client.chat(
             payload
         )
-        return response.choices[0].message.content
+
+        total_text = response.choices[0].message.content
+        if stopwords:
+            pattern = '|'.join(stopwords)
+            k=re.search(pattern, total_text)
+            # print(pattern, k)
+
+            if k:
+                goodText = total_text[:k.span()[0]]
+                return goodText
+        
+        return total_text
 
     return completion()
 
-@register_model("gigachat_llms")
+@register_model("gigachat_model")
 class GigaChatLM(LM):
 
     def __init__(
@@ -178,6 +191,9 @@ please install gigachat via `pip install 'gigachat'`",
                 inp = request[0]
                 request_args = request[1]
                 # generation_kwargs
+                until = request_args.get("until")
+
+                # print(f'Until: {isinstance(until, list)}')
                 max_gen_toks = request_args.get("max_gen_toks", self.max_length)
                 temperature = request_args.get("temperature", self.temperature)
                 if temperature==0:
@@ -187,9 +203,12 @@ please install gigachat via `pip install 'gigachat'`",
                     client=self.client,
                     model=self.model,
                     prompt=inp,
-                    max_tokens_to_sample=max_gen_toks,
+                    max_tokens=max_gen_toks,
+
+                    # max_tokens_to_sample=max_gen_toks,
                     temperature=temperature,  
                     system=system,
+                    stopwords=until,
                     **self.kwargs,
                 )
                 res.append(response)
